@@ -1,0 +1,26 @@
+{
+  "name": "githublogger",
+  "version": "0.0.1",
+  "author": "Geoffrey Challen <challen@illinois.edu>",
+  "license": "MIT",
+  "description": "GitHub hook logger",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cs125-illinois/githublogger.git"
+  },
+  "scripts": {
+    "standard": "standard"
+  },
+  "homepage": "https://github.com/cs125-illinois/githublogger",
+  "dependencies": {
+    "bunyan": "^1.8.12",
+    "debug": "^3.1.0",
+    "dotenv": "^4.0.0",
+    "github-webhook-handler": "^0.7.1",
+    "http": "0.0.0",
+    "lodash": "^4.17.4",
+    "minimist": "^1.2.0",
+    "moment": "^2.20.1",
+    "mongodb": "^3.0.1"
+  }
+}
