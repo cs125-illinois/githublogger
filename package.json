@@ -9,11 +9,12 @@
     "url": "https://github.com/cs125-illinois/githublogger.git"
   },
   "scripts": {
-    "standard": "standard"
+    "standard": "standard --fix"
   },
   "homepage": "https://github.com/cs125-illinois/githublogger",
   "dependencies": {
     "bunyan": "^1.8.12",
+    "chai": "^4.1.2",
     "debug": "^3.1.0",
     "dotenv": "^4.0.0",
     "github-webhook-handler": "^0.7.1",
@@ -22,6 +23,7 @@
     "minimist": "^1.2.0",
     "moment": "^2.20.1",
     "mongodb": "^3.0.1",
+    "rsmq": "^0.8.3",
     "standard": "^10.0.3"
   }
 }
