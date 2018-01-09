@@ -21,6 +21,7 @@
     "lodash": "^4.17.4",
     "minimist": "^1.2.0",
     "moment": "^2.20.1",
-    "mongodb": "^3.0.1"
+    "mongodb": "^3.0.1",
+    "standard": "^10.0.3"
   }
 }

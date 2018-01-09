@@ -30,7 +30,7 @@ let config = _.extend(_.clone(defaults), argv)
 debug(config)
 
 const webhookHandler = githubWebhookHandler({
-  path: "/",
+  path: '/',
   secret: process.env.GITHUB_SECRET
 })
 
@@ -39,7 +39,7 @@ webhookHandler.on('push', push => {
   log.info(push)
 
   push._id = push.id
-  delete(push.id)
+  delete (push.id)
   push.examined = false
   push.done = false
   push.received = moment().toDate()
@@ -53,7 +53,7 @@ mongo.connect(process.env.MONGO)
     github = client.db('MPs').collection('github')
     http.createServer((request, response) => {
       webhookHandler(request, response, err => {
-        log.debug(`${ request.url } caused error: ${ err }`)
+        log.debug(`${request.url} caused error: ${err}`)
         response.statusCode = 404
       })
     }).listen(config.port)
