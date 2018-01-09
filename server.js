@@ -48,12 +48,14 @@ webhookHandler.on('push', push => {
   push.received = moment().toDate()
 
   github.update({ _id: push._id }, push, { upsert: true })
-  rsmq.sendMessage({
-    qname: "gitgrader",
-    message: push._id
-  }, (err, resp) => {
-    expect(resp).to.be.ok
-  })
+    .then(() => {
+      rsmq.sendMessage({
+        qname: "gitgrader",
+        message: push._id
+      }, (err, resp) => {
+        expect(resp).to.be.ok
+      })
+    })
 })
 webhookHandler.on('error', err => { log.debug(err) })
 
