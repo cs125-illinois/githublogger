@@ -22,8 +22,8 @@ const log = bunyan.createLogger({
     }
   ]
 })
-const RSMQ = require('rsmq')
-const rsmq = new RSMQ({ host: '127.0.0.1', port: 6379, ns: 'gitgrader' })
+const RSMQ = require('rsmq-promise')
+const rsmq = new RSMQ({ host: '127.0.0.1', port: 6379, ns: 'githubgrader' })
 
 const argv = require('minimist')(process.argv.slice(2))
 const defaults = {
@@ -38,7 +38,7 @@ const webhookHandler = githubWebhookHandler({
 })
 
 let github
-webhookHandler.on('push', push => {
+webhookHandler.on('push', async push => {
   log.info(push)
 
   push._id = push.id
@@ -47,15 +47,13 @@ webhookHandler.on('push', push => {
   push.done = false
   push.received = moment().toDate()
 
-  github.update({ _id: push._id }, push, { upsert: true })
-    .then(() => {
-      rsmq.sendMessage({
-        qname: "gitgrader",
-        message: push._id
-      }, (err, resp) => {
-        expect(resp).to.be.ok
-      })
-    })
+  await github.update({ _id: push._id }, push, { upsert: true })
+  let response = await rsmq.sendMessage({
+    qname: "push",
+    message: push._id
+  })
+  expect(response).to.be.ok
+  debug(`Send message for push ${ push._id }`)
 })
 webhookHandler.on('error', err => { log.debug(err) })
 
