@@ -2,7 +2,6 @@
 
 require('dotenv').config()
 const _ = require('lodash')
-const debug = require('debug')('githublogger')
 const expect = require('chai').expect
 
 const http = require('http')
@@ -25,12 +24,34 @@ const log = bunyan.createLogger({
 const RSMQ = require('rsmq-promise')
 const rsmq = new RSMQ({ host: '127.0.0.1', port: 6379, ns: 'githubgrader' })
 
-const argv = require('minimist')(process.argv.slice(2))
+const jsYAML = require('js-yaml')
+const fs = require('fs')
 const defaults = {
   port: 8188
 }
-let config = _.extend(_.clone(defaults), argv)
-debug(config)
+const argv = require('minimist')(process.argv.slice(2))
+let config = _.extend(
+  defaults,
+  jsYAML.safeLoad(fs.readFileSync('config.yaml', 'utf8')),
+  argv
+)
+let PrettyStream = require('bunyan-prettystream')
+let prettyStream = new PrettyStream()
+prettyStream.pipe(process.stdout)
+if (config.debug) {
+	log.addStream({
+		type: 'raw',
+		stream: prettyStream,
+		level: "debug"
+	})
+} else {
+	log.addStream({
+		type: 'raw',
+		stream: prettyStream,
+		level: "warn"
+	})
+}
+log.debug(config)
 
 const webhookHandler = githubWebhookHandler({
   path: '/',
@@ -43,8 +64,6 @@ webhookHandler.on('push', async push => {
 
   push._id = push.id
   delete (push.id)
-  push.examined = false
-  push.done = false
   push.received = moment().toDate()
 
   await github.update({ _id: push._id }, push, { upsert: true })
@@ -53,16 +72,16 @@ webhookHandler.on('push', async push => {
     message: push._id
   })
   expect(response).to.be.ok
-  debug(`Send message for push ${ push._id }`)
+  log.debug(`Sent message for push ${ push._id }`)
 })
 webhookHandler.on('error', err => { log.debug(err) })
 
 mongo.connect(process.env.MONGO)
   .then(client => {
-    github = client.db('MPs').collection('github')
+    github = client.db(config.database).collection('github')
     http.createServer((request, response) => {
       webhookHandler(request, response, err => {
-        log.debug(`${request.url} caused error: ${err}`)
+        log.warn(`${request.url} caused error: ${err}`)
         response.statusCode = 404
       })
     }).listen(config.port)
