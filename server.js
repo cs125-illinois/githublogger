@@ -60,19 +60,23 @@ const webhookHandler = githubWebhookHandler({
 
 let github
 webhookHandler.on('push', async push => {
-  log.info(push)
+  try {
+    log.info(push)
 
-  push._id = push.id
-  delete (push.id)
-  push.received = moment().toDate()
+    push._id = push.id
+    delete (push.id)
+    push.received = moment().toDate()
 
-  await github.update({ _id: push._id }, push, { upsert: true })
-  let response = await rsmq.sendMessage({
-    qname: "push",
-    message: push._id
-  })
-  expect(response).to.be.ok
-  log.debug(`Sent message for push ${ push._id }`)
+    await github.update({ _id: push._id }, push, { upsert: true })
+    let response = await rsmq.sendMessage({
+      qname: "push",
+      message: push._id
+    })
+    expect(response).to.be.ok
+    log.debug(`Sent message for push ${ push._id }`)
+  } catch (err) {
+    log.fatal(err)
+  }
 })
 webhookHandler.on('error', err => { log.debug(err) })
 
