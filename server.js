@@ -2,13 +2,15 @@
 
 require('dotenv').config()
 const _ = require('lodash')
-const expect = require('chai').expect
+const chai = require('chai')
+const expect = chai.expect
+chai.use(require('dirty-chai'))
 
 const http = require('http')
 const githubWebhookHandler = require('github-webhook-handler')
 const mongo = require('mongodb').MongoClient
 const bunyan = require('bunyan')
-const moment = require('moment')
+const moment = require('moment-timezone')
 const log = bunyan.createLogger({
   name: 'githublogger',
   streams: [
@@ -39,19 +41,35 @@ let PrettyStream = require('bunyan-prettystream')
 let prettyStream = new PrettyStream()
 prettyStream.pipe(process.stdout)
 if (config.debug) {
-	log.addStream({
-		type: 'raw',
-		stream: prettyStream,
-		level: "debug"
-	})
+  log.addStream({
+    type: 'raw',
+    stream: prettyStream,
+    level: 'debug'
+  })
 } else {
-	log.addStream({
-		type: 'raw',
-		stream: prettyStream,
-		level: "warn"
-	})
+  log.addStream({
+    type: 'raw',
+    stream: prettyStream,
+    level: 'warn'
+  })
 }
-log.debug(config)
+
+const semesters = _.mapValues(config.semesters, semester => {
+  return {
+    start: moment.tz(new Date(semester.start), config.timezone),
+    end: moment.tz(new Date(semester.end), config.timezone)
+  }
+})
+
+function getCurrentSemester () {
+  const now = moment()
+  return _.findKey(semesters, ({ start, end }) => {
+    return now.isBetween(start, end, null, '[]')
+  })
+}
+
+log.info(config)
+log.info(`Current semester: ${getCurrentSemester()}`)
 
 const webhookHandler = githubWebhookHandler({
   path: '/',
@@ -61,28 +79,34 @@ const webhookHandler = githubWebhookHandler({
 let github
 webhookHandler.on('push', async push => {
   try {
-    log.info(push)
+    log.debug(push)
 
     push._id = push.id
     delete (push.id)
+
+    let semester = getCurrentSemester()
     push.received = moment().toDate()
+    if (semester) {
+      push.receivedSemester = semester
+    }
 
     await github.update({ _id: push._id }, push, { upsert: true })
     let response = await rsmq.sendMessage({
-      qname: "push",
+      qname: 'push',
       message: push._id
     })
-    expect(response).to.be.ok
-    log.debug(`Sent message for push ${ push._id }`)
+    expect(response).to.be.ok()
+
+    log.debug(`Sent message for push ${push._id}`)
   } catch (err) {
     log.fatal(err)
   }
 })
 webhookHandler.on('error', err => { log.debug(err) })
 
-mongo.connect(process.env.MONGO)
+mongo.connect(process.env.MONGO, { useNewUrlParser: true })
   .then(client => {
-    github = client.db(config.database).collection('github')
+    github = client.db('cs125').collection('github')
     http.createServer((request, response) => {
       webhookHandler(request, response, err => {
         log.warn(`${request.url} caused error: ${err}`)
