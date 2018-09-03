@@ -90,7 +90,7 @@ webhookHandler.on('push', async push => {
       push.receivedSemester = semester
     }
 
-    await github.update({ _id: push._id }, push, { upsert: true })
+    await github.replaceOne({ _id: push._id }, push, { upsert: true })
     let response = await rsmq.sendMessage({
       qname: 'push',
       message: push._id
